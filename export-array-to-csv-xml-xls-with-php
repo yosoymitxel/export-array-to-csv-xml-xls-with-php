@@ -1,0 +1,73 @@
+<?php
+// Convertir array a csv
+function exportar_arr_a_csv($array,$filename,$delimiter = ";"){
+    $headers = array_keys($array[0]);
+
+    $fd = fopen('php://output', 'w');
+
+    if ($fd === false) {
+        die("No se ha podido crear el archivo en el servidor. Revise los permisos en la carpeta.");
+    }
+
+    header('Content-Type: application/csv');
+    header('Content-Disposition: attachment; filename="' . $filename . '";');
+
+    //Inserta las cabeceras en el archivo
+    if ($headers) {
+        fputcsv($fd, $headers, $delimiter);
+    }
+
+    //Inserta los datos en el archivo
+    foreach ($array as $filas) {
+        fputcsv($fd, $filas, $delimiter);
+    }
+
+    //Cierra el archivo
+    fclose($fd);
+}
+
+// Convertir array a xml
+function exportar_arr_aux_to_xml( $data, &$xml_data ) {
+    foreach( $data as $key => $value ) {
+        if( is_array($value) ) {
+            if( is_numeric($key) ){
+                $key = 'PRODUCTO'.($key+1); //dealing with <0/>..<n/> issues
+            }
+            $subnode = $xml_data->addChild($key);
+            ProductosJDEController::api_aux_array_to_xml($value, $subnode);
+        } else {
+            $xml_data->addChild("$key",htmlspecialchars("$value"));
+        }
+    }
+}
+
+function exportar_arr_a_xml($array,$filename){
+    $xml_data = new \SimpleXMLElement('<?xml version="1.0"?><PRODUCTOS></PRODUCTOS>');
+    exportar_arr_aux_to_xml($array,$xml_data);
+    header('Content-Disposition: attachment; filename="' . $filename . '";');
+    $result   = $xml_data->asXML('php://output');
+    return $result;
+}
+
+function exportar_arr_a_xls($array, $filename){
+    $salida = "";
+    $salida .= "<table>";
+    $salida .= "<thead>";
+    foreach ( array_keys($array[0]) as $value){
+        $salida .= "<th>$value</th>";
+    }
+    $salida .= "</thead>";
+    foreach($array as $rows){
+        $salida .= '<tr>';
+        foreach ($rows as $row){
+            $salida .= "<td>$row</td>";
+        }
+        $salida .= '</tr>';
+    }
+    $salida .= "</table>";
+    header('Content-type: application/vnd.ms-excel');
+    header('Content-Disposition: attachment; filename="'.$filename.'"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+    echo $salida;
+}
